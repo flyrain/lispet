@@ -1,0 +1,17 @@
+A mini lisp written by C
+
+* error in book
+** chapter 9
+function builtin_op
+   if (y->num == 0) {
+        lval_del(x); lval_del(y); 
+        lval_del(a);//cannot delete a here.
+        x = lval_err("Division By Zero!"); break;
+      } else {
+        x->num /= y->num;
+      }
+* questions
+- test case =+ 2 (head {2 4})= cannot eval correctly, because head
+  return a qexpr, which is not number, and not able to caculate. May
+  resolve it later. If my lisp is a dynamic language, its OK. I am not
+  sure if my lisp will be a dynamic language.   
