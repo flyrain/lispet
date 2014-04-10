@@ -14,4 +14,10 @@ function builtin_op
 - test case =+ 2 (head {2 4})= cannot eval correctly, because head
   return a qexpr, which is not number, and not able to caculate. May
   resolve it later. If my lisp is a dynamic language, its OK. I am not
-  sure if my lisp will be a dynamic language.   
+  sure if my lisp will be a dynamic language. Edit: I can do it this
+  way =+ 2 (eval (head {2 4}))=, this could be right.   
+- We need to prevent user to def the builtin symbols, like =head=,
+  user can redefine it like =def {head} 1=, then we will lose this
+  builtin function. 
+- 'exit' function, to implement it. We let func envoke even only no
+  argument is needed.
