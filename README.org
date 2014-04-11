@@ -10,6 +10,21 @@ function builtin_op
       } else {
         x->num /= y->num;
       }
+** chapter 12
+function lval_copy
+#+begin_src C
+case LVAL_FUN:
+        if(v->builtin){
+            x->builtin = v->builtin; 
+        }else {
+            x->builtin = v->builtin; //here, we should make sure x->builtin is initialize to 0, otherwise it could be any value so I add this line.
+            x->env = lenv_copy(v->env);
+            x->formals = lval_copy(v->formals);
+            x->body = lval_copy(v->body);
+        }
+        break;
+#+end_src
+
 * questions
 - test case =+ 2 (head {2 4})= cannot eval correctly, because head
   return a qexpr, which is not number, and not able to caculate. May

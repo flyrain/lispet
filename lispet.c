@@ -85,6 +85,8 @@ static lval* lval_copy(lval* v);
 static lval* lval_pop(lval* v, int i);
 static lval* lval_take(lval* v, int i);
 
+lval* lval_call(lenv* e, lval* f, lval*a);
+
 static char * ltype_name(int t)
 {
     switch(t) {
@@ -157,6 +159,15 @@ static void lenv_put(lenv* e, lval* k, lval* v)
     // Why we need next two line? They are necessary.
     e->syms[e->count-1] = malloc(strlen(k->sym) + 1);
     strcpy(e->syms[e->count-1], k->sym);
+}
+
+static void lenv_def(lenv*e, lval* k, lval*v)
+{
+    //iterate till e has no parent
+    while(e->par){e = e->par;}
+
+    //put value in e
+    lenv_put(e, k, v);
 }
 
 static lval* lval_lambda(lval* formals, lval* body)
@@ -290,6 +301,7 @@ static lval* lval_copy(lval* v)
         if(v->builtin){
             x->builtin = v->builtin; 
         }else {
+            x->builtin = v->builtin;
             x->env = lenv_copy(v->env);
             x->formals = lval_copy(v->formals);
             x->body = lval_copy(v->body);
@@ -417,14 +429,14 @@ static lval* lval_eval_sexpr(lenv* e, lval* v)
     //ensure first element is symbol
     lval* f = lval_pop(v, 0);
     if(f->type != LVAL_FUN){
-        lval* err = lval_err("first element '%s' is not a function!", 
+        lval* err = lval_err("S-Expression starts with incorrect type. First element '%s' is not a function!", 
                              ltype_name(f->type));
         lval_del(f); lval_del(v);
         return err;
     }
     
     //call builtin with operator
-    lval* result = f->builtin(e, v);
+    lval* result = lval_call(e, f, v);
     lval_del(f);
     return result;
 }
@@ -612,9 +624,9 @@ static lval* builtin_join(lenv* e, lval* a)
     return x;
 }
 
-static lval* builtin_def(lenv* e, lval* a)
+static lval* builtin_var(lenv* e, lval* a, char* func)
 {
-    LASSERT_TYPE("def", a, 0, LVAL_QEXPR);
+    LASSERT_TYPE(func, a, 0, LVAL_QEXPR);
     
     //first element is symbol list
     lval* syms = a->cell[0];
@@ -627,12 +639,16 @@ static lval* builtin_def(lenv* e, lval* a)
     LASSERT(a, (syms->count == a->count-1), "Function 'def' cannot define incorrect number of values to symbols!");
 
     for (int i = 0; i < syms->count; i++) {
-        lenv_put(e, syms->cell[i], a->cell[i+1]);
+        if(strcmp(func, "def") == 0) {lenv_def(e, syms->cell[i], a->cell[i+1]);}
+        if(strcmp(func, "=")== 0) {lenv_put(e, syms->cell[i], a->cell[i+1]);}
     }
 
     lval_del(a);
     return lval_sexpr();
 }
+
+lval* builtin_def(lenv*e, lval* a) {return builtin_var(e, a, "def");}
+lval* builtin_put(lenv*e, lval* a) {return builtin_var(e, a, "=");}
 
 static lval* builtin_exit(lenv* e, lval* a)
 {
@@ -659,6 +675,49 @@ static lval* builtin_lambda(lenv* e, lval* a)
     return lval_lambda(formals, body);
 }
 
+lval* lval_call(lenv* e, lval* f, lval*a)
+{
+    //if builtin then simply call that
+    if(f->builtin) {return f->builtin(e, a);}
+    
+    //record argument counts
+    int given = a->count;
+    int total = f->formals->count;
+
+    //while arguments still remain to be processed
+    while(a->count){
+        //if we've ran out of formal arguments to bind
+        if(f->formals->count == 0){
+            lval_del(a);
+            return lval_err("Function passed too many arguments. Got %i, Expected %i", given, total);
+        }
+            
+        //pop the first symbol from the formals
+        lval* sym = lval_pop(f->formals, 0);
+        //pop the next argument from the list
+        lval* val = lval_pop(a, 0);
+        
+        //bind a copy into function's environment
+        lenv_put(f->env, sym, val);
+
+        //delete symbol and value
+        lval_del(sym);lval_del(val);
+    }
+
+    lval_del(a);
+
+    //if all formals have been bound evalute
+    if(f->formals->count ==0){
+        
+        f->env->par =e;
+    
+        return builtin_eval(f->env, lval_add(lval_sexpr(), lval_copy(f->body)));
+    }else{
+        //otherwise return partially evaluted function
+        return lval_copy(f);
+    }
+}
+
 static void lenv_add_builtin(lenv* e, char* name, lbuiltin func)
 {
     lval* k = lval_sym(name);
@@ -680,6 +739,8 @@ static void lenv_add_builtins(lenv *e)
     lenv_add_builtin(e, "len", builtin_len);
     lenv_add_builtin(e, "def", builtin_def);
     lenv_add_builtin(e, "exit", builtin_exit);
+    lenv_add_builtin(e, "=", builtin_put);
+    lenv_add_builtin(e, "\\", builtin_lambda);
     
     //mathematical functions
     lenv_add_builtin(e, "+", builtin_add);
