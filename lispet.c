@@ -435,7 +435,7 @@ static lval* lval_eval_sexpr(lenv* e, lval* v)
         return err;
     }
     
-    //call builtin with operator
+    //call a funtion 
     lval* result = lval_call(e, f, v);
     lval_del(f);
     return result;
@@ -694,6 +694,20 @@ lval* lval_call(lenv* e, lval* f, lval*a)
             
         //pop the first symbol from the formals
         lval* sym = lval_pop(f->formals, 0);
+        
+        //special case to deal with '&'
+        if(strcmp(sym->sym, "&") == 0){
+            //ensure '&' is followed by another symbol
+            if(f->formals->count != 1){
+                lval_del(a);
+                return lval_err("Function format invalid. Symbol '&' not followed by single symbol.");
+            }
+            
+            lval* nsym = lval_pop(f->formals, 0);
+            lenv_put(f->env, nsym, builtin_list(e, a));
+            lval_del(sym); lval_del(nsym);
+            break;
+        }
         //pop the next argument from the list
         lval* val = lval_pop(a, 0);
         
@@ -705,6 +719,26 @@ lval* lval_call(lenv* e, lval* f, lval*a)
     }
 
     lval_del(a);
+
+    //if '&' remains in formal list it should be bound to empty list
+    if(f->formals->count > 0 && 
+       strcmp(f->formals->cell[0]->sym, "&") == 0){
+        //check to ensure that & is not passed invalidly
+        if(f->formals->count != 2){
+            return lval_err("Function format invalid. Symbol '&' not followed by single symbol.");
+        }
+        
+        //pop and delete '&' symbol
+        lval_del(lval_pop(f->formals, 0));
+
+        //pop next symbol and create empty list
+        lval* sym = lval_pop(f->formals, 0);
+        lval* val = lval_qexpr();
+
+        //bind to environment and delete
+        lenv_put(f->env, sym, val);
+        lval_del(sym);lval_del(val);
+    }
 
     //if all formals have been bound evalute
     if(f->formals->count ==0){
@@ -749,6 +783,45 @@ static void lenv_add_builtins(lenv *e)
     lenv_add_builtin(e, "/", builtin_div);
 } 
 
+int input_eval(lenv* e, mpc_parser_t* Lispy, char * input){
+    mpc_result_t r;
+    if(mpc_parse("<stdin>", input, Lispy, &r) == 1){
+        lval* result = lval_read(r.output);
+        lval* x = lval_eval(e, result); 
+        int is_err = 0;
+        if(x->type == LVAL_ERR){
+            lval_println(x);
+            is_err = 1;
+        }
+        lval_del(x);
+        mpc_ast_delete(r.output);
+        if(is_err)
+            return 0;
+        return 1;
+    }else{
+        mpc_err_print(r.error);
+        mpc_err_delete(r.error);
+    }
+    return 0;
+}
+
+void func_predefine(lenv* e, mpc_parser_t* Lispy ){
+    //'fun' to define fun easily
+    input_eval(e, Lispy, "def {fun} (\\ {args body} {def (head args) (\\ (tail args) body)})");
+    //'curry' aka 'unpack', which unpack list arguments.
+    input_eval(e, Lispy, "fun {unpack f xs} {eval (join (list f) xs)}");
+    input_eval(e, Lispy, "fun {curry f xs} {eval (join (list f) xs)}");
+    //'uncurry' aka 'pack', which pack all arguments to a list
+    input_eval(e, Lispy, "fun {pack f & xs} {f xs}");
+    input_eval(e, Lispy, "fun {uncurry f & xs} {f xs}");
+}
+
+
+void test_case(lenv* e, mpc_parser_t* Lispy ){
+    assert(input_eval(e, Lispy, "fun {add & xs} {curry + xs}"));
+    puts("all test cases passed"); 
+}
+
 int main(int argc, char ** argv){
     // create some parsers
     mpc_parser_t* Number = mpc_new("number");
@@ -775,6 +848,9 @@ int main(int argc, char ** argv){
     
     lenv* e =lenv_new();
     lenv_add_builtins(e);
+    func_predefine(e, Lispy);
+
+    test_case(e, Lispy);
 
     while(1) {
         char * input =readline("lispy> ");
