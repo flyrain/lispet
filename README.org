@@ -24,15 +24,19 @@ case LVAL_FUN:
         }
         break;
 #+end_src
-
+This is fixed in the book, but should be explicitly pointed out.
+Otherwise, reader like me will confuse and should take times to fix
+this bug.
 * questions
 - test case =+ 2 (head {2 4})= cannot eval correctly, because head
-  return a qexpr, which is not number, and not able to caculate. May
-  resolve it later. If my lisp is a dynamic language, its OK. I am not
-  sure if my lisp will be a dynamic language. Edit: I can do it this
-  way =+ 2 (eval (head {2 4}))=, this could be right.   
+  return a qexpr, which is not number, and not able to caculate. Edit:
+  I can do it this way =+ 2 (eval (head {2 4}))=, this could be right.
 - We need to prevent user to def the builtin symbols, like =head=,
   user can redefine it like =def {head} 1=, then we will lose this
   builtin function. 
 - 'exit' function, to implement it. We let func envoke even only no
-  argument is needed.
+  argument is needed. I've considered =(S-expression)= as =(eval
+  (S-expression))=, but this also confuse user. The problem here is
+  that LISPET Couldn't distinguish "function itself" and "function
+  call without any argument". This should be done later, otherwise,
+  any function should at least has one argument.
