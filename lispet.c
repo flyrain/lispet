@@ -440,7 +440,7 @@ static void lval_print(lval* v)
 {
     switch(v->type){
     case LVAL_NUM: printf("%li", v->num); break;
-    case LVAL_ERR: printf("Error %s", v->err); break; 
+    case LVAL_ERR: printf("Error: %s", v->err); break; 
     case LVAL_SYM: printf("%s", v->sym); break; 
     case LVAL_STR: lval_print_str(v); break; 
     case LVAL_FUN: 
@@ -639,6 +639,21 @@ lval* builtin_cmp(lenv* e, lval* a, char* op)
 lval* builtin_eq(lenv* e, lval* a) {return builtin_cmp(e, a, "==");}
 lval* builtin_ne(lenv* e, lval* a) {return builtin_cmp(e, a, "!=");}
 
+lval* builtin_print(lenv* e, lval*a)
+{
+    //print each argument follow by a space
+    for (int i = 0; i < a->count; i++) {
+        lval_print(a->cell[i]);
+        putchar(' ');
+    }
+    
+    //print a newline and delete arguments
+    putchar('\n');
+    lval_del(a);
+    
+    return lval_sexpr();
+}
+
 lval* builtin_load(lenv* e, lval*a)
 {
     LASSERT_NUM("load", a, 1);
@@ -771,6 +786,17 @@ static lval* builtin_join(lenv* e, lval* a)
     
     lval_del(a);
     return x;
+}
+
+lval* builtin_error(lenv* e, lval* a)
+{
+    LASSERT_NUM("error", a, 1);
+    LASSERT_TYPE("error", a, 0, LVAL_STR);
+
+    lval* err = lval_err(a->cell[0]->str);
+
+    lval_del(a);
+    return err;
 }
 
 static lval* builtin_var(lenv* e, lval* a, char* func)
@@ -943,6 +969,9 @@ static void lenv_add_builtins(lenv *e)
     lenv_add_builtin(e, "len", builtin_len);
     lenv_add_builtin(e, "def", builtin_def);
     lenv_add_builtin(e, "exit", builtin_exit);
+    lenv_add_builtin(e, "print", builtin_print);
+    lenv_add_builtin(e, "error", builtin_error);
+    lenv_add_builtin(e, "load", builtin_load);
     lenv_add_builtin(e, "=", builtin_put);
     lenv_add_builtin(e, "\\", builtin_lambda);
     
@@ -1035,14 +1064,14 @@ void interpreter(lenv* e, mpc_parser_t* Lispy){
 
 int main(int argc, char ** argv){
     // create some parsers
-    mpc_parser_t* Number = mpc_new("number");
-    mpc_parser_t* Symbol = mpc_new("symbol");
-    mpc_parser_t* String = mpc_new("string");
-    mpc_parser_t* Comment = mpc_new("comment");
-    mpc_parser_t* Sexpr = mpc_new("sexpr");
-    mpc_parser_t* Qexpr = mpc_new("qexpr");
-    mpc_parser_t* Expr = mpc_new("expr");
-    mpc_parser_t* Lispy = mpc_new("lispy");
+    Number = mpc_new("number");
+    Symbol = mpc_new("symbol");
+    String = mpc_new("string");
+    Comment = mpc_new("comment");
+    Sexpr = mpc_new("sexpr");
+    Qexpr = mpc_new("qexpr");
+    Expr = mpc_new("expr");
+    Lispy = mpc_new("lispy");
 
     // define them with following language
     mpca_lang(MPC_LANG_DEFAULT,
@@ -1050,7 +1079,7 @@ int main(int argc, char ** argv){
               number  : /-?[0-9]+/;                                           \
               symbol  : /[a-zA-Z0-9+\\-*\\/\\\\=<>!&]+/;                      \
               string  : /\"(\\\\.|[^\"])*\"/;                                 \
-              comment : /;[^\\r\\n]* /;                                       \
+              comment : /;[^\\r\\n]*/;                                        \
               sexpr   : '(' <expr>* ')';                                      \
               qexpr   : '{' <expr>* '}';                                      \
               expr    : <number> | <symbol> | <string> | <comment> | <sexpr> | <qexpr>; \
@@ -1062,7 +1091,7 @@ int main(int argc, char ** argv){
     lenv* e =lenv_new();
     lenv_add_builtins(e);
 
-    if(argc > 2){
+    if(argc >= 2){
         for(int i = 1; i < argc; i++){
             lval* args = lval_add(lval_sexpr(), lval_str(argv[i]));
             lval* x = builtin_load(e, args);

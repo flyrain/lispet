@@ -29,6 +29,9 @@ case LVAL_FUN:
 This bug is fixed in the book, but this bug should be explicitly
 pointed out. Otherwise, reader will confuse and take times to fix this
 bug.
+** Chapter 15 standard library
+- I think =(def {curry} {unpack})= should be =(def {curry} unpack)=
+- "Minimum of Arguments" -> "Maximun of Arguments"
 * Questions
 - test case =+ 2 (head {2 4})= cannot eval correctly, because head
   return a qexpr, which is not number, and not able to caculate. Edit:

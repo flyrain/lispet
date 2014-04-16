@@ -1,0 +1,91 @@
+;;;
+;;;  Lispet Standard Prelude
+;;;
+
+;;; Atom
+(def {nil} {})
+(def {true} 1)
+(def {false} 0)
+
+;;; Functional Functions
+
+; Function Definitions
+(def {fun} (\ {f b} {
+     def (head f) (\ (tail f) b)
+}))
+
+;;; Unpack List for Function
+(fun {unpack f l} {
+     eval (join (list f) l)
+})
+
+;;; Pack List for Function
+(fun {pack f & xs} {f xs})
+
+;;; Curried and Uncurried calling
+(def {curry} unpack)
+(def {uncurry} pack)
+
+; Perform Serveral things in Sequence
+(fun {do & l} {
+     if (== l nil)
+         {nil}
+         {last l}
+})
+
+; Open new scope
+(fun {let b} {
+     ((\ { } b) ())
+})
+
+;;; Logical Functions
+
+; Logical Functions
+(fun {not x} {- 1 x})
+(fun {or x y} {+ x y})
+(fun {and x y} {* x y})
+
+;;; Numeric Functions
+
+; Minimun of Arguments
+(fun {min & xs}{
+     if (== (tail xs) nil) {fst xs}
+        {do 
+           (= {rest} (unpack min (tail xs)))
+           (= {item} (fst xs))
+           (if (< item rest) {item} {rest})
+         }
+})
+
+; Maximun of Arguments
+(fun {max & xs} {
+     if (== (tail xs) nil) {fst xs}
+     {do 
+        (= {rest} (unpack max (tail xs)))
+        (= {item} (fst xs))
+        (if (> item rest) {item} {rest})
+     }
+})
+
+;;; Conditional Functions
+(fun {select & cs} {
+     if (== cs nil)
+        {error "No Selection Found"}
+        {if (fst (fst cs)) {snd (fst cs)} {unpack select (tail cs)}}
+})
+
+(fun {case x & cs} {
+     if (== cs nil)
+         {error "No Case Found"}
+         {if (== x (fst (fst cs))) {snd (fst cs)} {unpack case (join (list x) (tail cs))}}
+})
+
+(def {otherwise} true)
+
+;;; Misc Functions
+(fun {flip f a b} {f b a})
+
+;;; test
+(fun {add & xs} {curry + xs})
+
+(add 1 2 3 4)
