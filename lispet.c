@@ -994,6 +994,7 @@ static void lenv_add_builtins(lenv *e)
     lenv_add_builtin(e, "if", builtin_if);
 } 
 
+/*
 int input_eval(lenv* e, mpc_parser_t* Lispy, char * input){
     mpc_result_t r;
     if(mpc_parse("<stdin>", input, Lispy, &r) == 1){
@@ -1033,12 +1034,11 @@ void test_case(lenv* e, mpc_parser_t* Lispy ){
     assert(input_eval(e, Lispy, "fun {len l} {if (== l {}) {0} {+ 1 (len (tail l))}}"));
     puts("All test cases passed"); 
 }
+*/
 
 void interpreter(lenv* e, mpc_parser_t* Lispy){
     puts("Lispy Version 0.0.0.0.1");
     puts("Press Ctl+c to Exit\n");
-    func_predefine(e, Lispy);
-    test_case(e, Lispy);
 
     while(1) {
         char * input =readline("lispy> ");
@@ -1090,6 +1090,13 @@ int main(int argc, char ** argv){
 
     lenv* e =lenv_new();
     lenv_add_builtins(e);
+    lval* x = builtin_load(e, lval_add(lval_sexpr(), lval_str("prelude.lt")));
+    if(x->type != LVAL_ERR)
+        puts("Prelude.lt Loaded Successfully!");
+    else 
+        lval_println(x);
+
+    lval_del(x);
 
     if(argc >= 2){
         for(int i = 1; i < argc; i++){

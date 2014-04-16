@@ -1,0 +1,8 @@
+;;; Test 
+(fun {add & xs} {curry + xs})
+
+(print (add 1 2 3 5))
+
+(print "hello world")
+
+(print "Test Successed.")

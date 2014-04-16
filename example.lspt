@@ -1,5 +1,0 @@
-(def {fun} (\ {args body} {def (head args) (\ (tail args) body)}))
-(fun {unpack f xs} {eval (join (list f) xs)})
-(fun {add & xs} {unpack + xs})
-(print (add 1 2 3 5))
-(print "hello world")
