@@ -115,7 +115,7 @@
 (fun {map f l} {
      if(== l nil)
         {nil}
-        {join (list (f (fst l))) (map (tail l))}
+        {join (list (f (fst l))) (map f (tail l))}
 })
 
 ; Apply Filter to List

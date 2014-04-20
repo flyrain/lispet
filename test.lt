@@ -1,7 +1,19 @@
 ;;; Test 
-(fun {add & xs} {curry + xs})
 
-(print (add 1 2 3 5))
+;(fun {test }
+; fun
+(fun {add x y} {+ x y})
+
+
+; unpack curry 
+(fun {add & xs} {unpack + xs})
+(fun {add & xs} {curry + xs})
+(== (add 1 2 3 4) 10)
+
+; pack uncurry 
+(== (pack head 1 2 3 4) {1})
+(== (pack head 1 2 3 4) {1})
+
 
 (print "hello world")
 
