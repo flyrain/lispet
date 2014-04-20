@@ -35,7 +35,7 @@
 
 ; Open new scope
 (fun {let b} {
-     ((\ { } b) ())
+     ((\ {_} b) ())
 })
 
 ;;; Logical Functions
