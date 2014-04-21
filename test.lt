@@ -1,20 +1,33 @@
 ;;; Test 
 
-;(fun {test }
+(def {test-count} 0)
+(fun {test x y} {
+     do 
+     (def {test-count} (+ test-count 1))
+     (print test-count ":" x (== (eval x) y)) 
+})
+
 ; fun
 (fun {add x y} {+ x y})
-
+(test {add 1 2} 3)
 
 ; unpack curry 
 (fun {add & xs} {unpack + xs})
 (fun {add & xs} {curry + xs})
-(== (add 1 2 3 4) 10)
+(test {add 1 2 3 4} 10)
 
 ; pack uncurry 
-(== (pack head 1 2 3 4) {1})
-(== (pack head 1 2 3 4) {1})
+(test {pack head 1 2 3 4} {1})
+(test {uncurry head 1 2 3 4} {1})
 
+; logical function
+(test {not false} true)
+(test {not true} false)
+(test {or false true} true)
+(test {and false true} false)
 
-(print "hello world")
+; Min and Max
+(test {min 2 1 3 4} 1)
+(test {max 2 1 3 4} 4)
 
-(print "Test Successed.")
+(print  test-count "Tests Successed!")

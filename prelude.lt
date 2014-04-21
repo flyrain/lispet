@@ -47,7 +47,7 @@
 
 ;;; Numeric Functions
 
-; Minimun of Arguments
+; Minimum of Arguments
 (fun {min & xs}{
      if (== (tail xs) nil) {fst xs}
         {do 
@@ -57,7 +57,7 @@
          }
 })
 
-; Maximun of Arguments
+; Maximum of Arguments
 (fun {max & xs} {
      if (== (tail xs) nil) {fst xs}
      {do 
