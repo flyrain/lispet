@@ -526,6 +526,17 @@ static lval* lval_take(lval* v, int i )
     return x;
 }
 
+lval* builtin_type_of(lenv* e, lval* a)
+{
+    LASSERT_NUM("type-of", a, 1);
+    
+    lval* v = lval_take(a, 0);
+
+    lval* type_str = lval_str(ltype_name(v->type));
+
+    lval_del(v);
+    return type_str;
+}
    
 
 static lval* builtin_op(lenv* e, lval* a, char* op)
@@ -972,6 +983,7 @@ static void lenv_add_builtins(lenv *e)
     lenv_add_builtin(e, "print", builtin_print);
     lenv_add_builtin(e, "error", builtin_error);
     lenv_add_builtin(e, "load", builtin_load);
+    lenv_add_builtin(e, "type-of", builtin_type_of);
     lenv_add_builtin(e, "=", builtin_put);
     lenv_add_builtin(e, "\\", builtin_lambda);
     
